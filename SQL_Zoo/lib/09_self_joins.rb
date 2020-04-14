@@ -17,62 +17,102 @@ require_relative './sqlzoo.rb'
 def num_stops
   # How many stops are in the database?
   execute(<<-SQL)
+  SELECT
+    COUNT(stops.id)
+  FROM
+    stops;
   SQL
 end
-
+#why can't we use agregators without group by??
 def craiglockhart_id
   # Find the id value for the stop 'Craiglockhart'.
   execute(<<-SQL)
+  SELECT
+    stops.id
+  FROM
+    stops
+  WHERE
+    name = 'Craiglockhart';
   SQL
 end
 
 def lrt_stops
   # Give the id and the name for the stops on the '4' 'LRT' service.
   execute(<<-SQL)
+  SELECT
+    stops.id, stops.name
+  FROM
+    routes
+  JOIN 
+    stops ON stops.id = routes.stop_id
+  WHERE
+    company = 'LRT' AND num = '4'
   SQL
 end
 
 def connecting_routes
   # Consider the following query:
   #
-  # SELECT
-  #   company,
-  #   num,
-  #   COUNT(*)
-  # FROM
-  #   routes
-  # WHERE
-  #   stop_id = 149 OR stop_id = 53
-  # GROUP BY
-  #   company, num
+
   #
   # The query gives the number of routes that visit either London Road
   # (149) or Craiglockhart (53). Run the query and notice the two services
   # that link these stops have a count of 2. Add a HAVING clause to restrict
   # the output to these two routes.
   execute(<<-SQL)
+  SELECT
+    company,
+    num,
+    COUNT(*)
+  FROM
+    routes
+  WHERE
+    stop_id = 149 OR stop_id = 53
+  GROUP BY
+    company, num
+  HAVING
+    COUNT(*) = 2
+  ORDER BY
+    company, num;
   SQL
 end
+
+#Why is count(*)? How is this better than using an arbitrary col or id col?
 
 def cl_to_lr
   # Consider the query:
   #
-  # SELECT
-  #   a.company,
-  #   a.num,
-  #   a.stop_id,
-  #   b.stop_id
-  # FROM
-  #   routes a
-  # JOIN
-  #   routes b ON (a.company = b.company AND a.num = b.num)
-  # WHERE
-  #   a.stop_id = 53
+
+  # 
+  # 
+  # SELECT A.CustomerName AS CustomerName1, B.CustomerName AS CustomerName2, A.City
+  # FROM Customers A, Customers B
+  # WHERE A.CustomerID <> B.CustomerID
+  # AND A.City = B.City
+  # ORDER BY A.City;
   #
   # Observe that b.stop_id gives all the places you can get to from
   # Craiglockhart, without changing routes. Change the query so that it
   # shows the services from Craiglockhart to London Road.
   execute(<<-SQL)
+  SELECT
+    a.company,
+    a.num,
+    a.stop_id,
+    b.stop_id
+  FROM
+    routes a
+  JOIN
+    routes b ON (a.company = b.company AND a.num = b.num)
+  WHERE
+    a.stop_id = 53 AND b.stop_id = (
+      SELECT
+        stops.id
+      FROM
+        stops
+      WHERE
+        name = 'London Road'
+    );
   SQL
 end
 
